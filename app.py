@@ -16,7 +16,7 @@ HTML = """
   body { font-family: Arial, sans-serif; margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f6f6f6; }
   .card { width: min(420px, 92vw); background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.08); text-align: center; }
   p { margin: 0 0 12px; color: #444; font-size: 14px; line-height: 1.4; }
-  input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 10px; box-sizing: border-box; }
+  input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 10px; box-sizing: border-box; margin-bottom: 12px; }
   button { width: 100%; margin-top: 12px; padding: 12px; font-size: 16px; border: 0; border-radius: 10px; cursor: pointer; }
   .note { margin-top: 10px; font-size: 12px; color: #666; min-height: 16px; }
   .instagram { margin-top: 32px; text-align: center; }
@@ -61,9 +61,17 @@ input.invalid {
 
   <img src="/static/logo.png" alt="Aavang logo" class="logo" />
 
-  <p>Indtast dit mobilnummer for at modtage en SMS, når der kommer nyt <b>Aavang</b> drip.</p>
+  <p>Indtast dit fulde navn og mobilnummer for at modtage en SMS, når der kommer nyt <b>Aavang</b> drip.</p>
 
   <form method="POST" id="phoneForm">
+  <input
+    type="text"
+    name="fullname"
+    placeholder="Indtast dit fulde navn"
+    autocomplete="name"
+    required
+  />
+
   <input
     type="tel"
     name="phone"
@@ -92,26 +100,36 @@ input.invalid {
   const btn = document.getElementById("submitBtn");
   const btnText = btn.querySelector(".btnText");
   const statusEl = document.getElementById("status");
-  const input = form.querySelector('input[name="phone"]');
+  const phoneInput = form.querySelector('input[name="phone"]');
+const nameInput = form.querySelector('input[name="fullname"]');
 
-  form.addEventListener("submit", (e) => {
-    const phone = input.value.trim();
+form.addEventListener("submit", (e) => {
+  const phone = phoneInput.value.trim();
+  const fullname = nameInput.value.trim();
 
-    // ❌ Ikke valid: vis rød feedback
-    if (!/^\d{8}$/.test(phone)) {
-      e.preventDefault();
-      statusEl.textContent = "Indtast et gyldigt telefonnummer (8 cifre).";
-      statusEl.className = "note error";
-      input.classList.add("invalid");
-      return;
-    }
+  nameInput.classList.remove("invalid");
+  phoneInput.classList.remove("invalid");
 
-    // ✅ Valid: ryd fejl og vis spinner
-    input.classList.remove("invalid");
-    statusEl.textContent = "";
-    btn.disabled = true;
-    btnText.innerHTML = '<span class="spinner"></span>Sender...';
-  });
+  if (fullname.length < 2) {
+    e.preventDefault();
+    statusEl.textContent = "Indtast dit fulde navn.";
+    statusEl.className = "note error";
+    nameInput.classList.add("invalid");
+    return;
+  }
+
+  if (!/^\\d{8}$/.test(phone)) {
+    e.preventDefault();
+    statusEl.textContent = "Indtast et gyldigt telefonnummer (8 cifre).";
+    statusEl.className = "note error";
+    phoneInput.classList.add("invalid");
+    return;
+  }
+
+  statusEl.textContent = "";
+  btn.disabled = true;
+  btnText.innerHTML = '<span class="spinner"></span>Sender...';
+});
 </script>
 
 </body>
@@ -123,14 +141,19 @@ def index():
     status = ""
     status_class = ""
 
-    if request.method == "POST":
-        phone = (request.form.get("phone") or "").strip()
+   if request.method == "POST":
+    fullname = (request.form.get("fullname") or "").strip()
+    phone = (request.form.get("phone") or "").strip()
 
-        # Server-side validering (vigtigt)
-        if not (phone.isdigit() and len(phone) == 8):
-            status = "Indtast et gyldigt telefonnummer (8 cifre)."
-            status_class = "error"
-            return render_template_string(HTML, status=status, status_class=status_class)
+    if len(fullname) < 2:
+        status = "Indtast dit fulde navn."
+        status_class = "error"
+        return render_template_string(HTML, status=status, status_class=status_class)
+
+    if not (phone.isdigit() and len(phone) == 8):
+        status = "Indtast et gyldigt telefonnummer (8 cifre)."
+        status_class = "error"
+        return render_template_string(HTML, status=status, status_class=status_class)
 
         now = datetime.now()
         date = now.strftime("%d-%m-%Y")
@@ -140,10 +163,12 @@ def index():
         ENTRY_DATE = "entry.320320826"
         ENTRY_TIME = "entry.1767503633"
         ENTRY_PHONE = "entry.1135538317"
+        ENTRY_NAME = "entry.1789850509"
 
         payload = {
             ENTRY_DATE: date,
             ENTRY_TIME: time,
+            ENTRY_NAME: fullname,
             ENTRY_PHONE: phone,
         }
 
