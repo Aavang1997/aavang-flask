@@ -141,40 +141,40 @@ def index():
     status = ""
     status_class = ""
 
-   if request.method == "POST":
-    fullname = (request.form.get("fullname") or "").strip()
-    phone = (request.form.get("phone") or "").strip()
+    if request.method == "POST":
+        fullname = (request.form.get("fullname") or "").strip()
+        phone = (request.form.get("phone") or "").strip()
 
-    if len(fullname) < 2:
-        status = "Indtast dit fulde navn."
-        status_class = "error"
-        return render_template_string(HTML, status=status, status_class=status_class)
+        if len(fullname) < 2:
+            status = "Indtast dit fulde navn."
+            status_class = "error"
+            return render_template_string(HTML, status=status, status_class=status_class)
 
-    if not (phone.isdigit() and len(phone) == 8):
-        status = "Indtast et gyldigt telefonnummer (8 cifre)."
-        status_class = "error"
-        return render_template_string(HTML, status=status, status_class=status_class)
+        if not (phone.isdigit() and len(phone) == 8):
+            status = "Indtast et gyldigt telefonnummer (8 cifre)."
+            status_class = "error"
+            return render_template_string(HTML, status=status, status_class=status_class)
 
         now = datetime.now()
         date = now.strftime("%d-%m-%Y")
         time = now.strftime("%H:%M")
 
         FORM_ACTION_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdihXEliELHSuYHQW08MtquCkLC-q2SzMhKBRhwGZjsfO4N0A/formResponse"
+        ENTRY_NAME = "entry.1789850509"
         ENTRY_DATE = "entry.320320826"
         ENTRY_TIME = "entry.1767503633"
         ENTRY_PHONE = "entry.1135538317"
-        ENTRY_NAME = "entry.1789850509"
 
         payload = {
+            ENTRY_NAME: fullname,
             ENTRY_DATE: date,
             ENTRY_TIME: time,
-            ENTRY_NAME: fullname,
             ENTRY_PHONE: phone,
         }
 
         try:
             requests.post(FORM_ACTION_URL, data=payload, timeout=10)
-            status = "Tak! Dit nummer er gemt."
+            status = "Tak! Dit navn og nummer er gemt."
             status_class = "success"
         except requests.RequestException:
             status = "Noget gik galt. Prøv igen."
