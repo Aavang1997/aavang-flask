@@ -2,6 +2,7 @@ from flask import Flask, request, render_template_string
 import csv
 from datetime import datetime
 import requests
+from io import StringIO
 
 app = Flask(__name__)
 
@@ -136,6 +137,28 @@ form.addEventListener("submit", (e) => {
 </html>
 """
 
+def phone_exists(phone):
+    SHEET_URL = "https://docs.google.com/spreadsheets/d/13rOo0e3Y7h1yYo3BzwbBdAkRFjLlFCDGmi2jWvcJL8c/export?format=csv"
+
+    try:
+        r = requests.get(SHEET_URL, timeout=5)
+        r.raise_for_status()
+
+        from io import StringIO
+        import csv
+
+        csv_data = StringIO(r.text)
+        reader = csv.DictReader(csv_data)
+
+        for row in reader:
+            if row["Telefonnummer"].strip() == phone.strip():
+                return True
+
+    except Exception as e:
+        print("Fejl ved tjek af sheet:", e)
+
+    return False
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     status = ""
@@ -144,6 +167,11 @@ def index():
     if request.method == "POST":
         fullname = (request.form.get("fullname") or "").strip()
         phone = (request.form.get("phone") or "").strip()
+
+        if phone_exists(phone):
+            status = "Dette telefonnummer er allerede tilmeldt."
+            status_class = "error"
+            return render_template_string(HTML, status=status, status_class=status_class)
 
         if len(fullname) < 2:
             status = "Indtast dit fulde navn."
